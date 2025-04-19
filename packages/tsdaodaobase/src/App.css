@@ -24,6 +24,8 @@
 
     --wk-message-item: white;
     --wk-message-color: #0F0F0F;
+
+     --wk-color-top-bg: rgba(228, 99, 66, 0.1);
   }
 
   *, *:before, *:after {
@@ -44,7 +46,7 @@
 
     --semi-color-primary: #E46342;
     --semi-color-primary-hover: rgb(228, 99, 66,0.5);
-
+      --wk-color-top-bg: rgba(228, 99, 66, 0.25);
   }
 
   /* ::-webkit-scrollbar-thumb:window-inactive {

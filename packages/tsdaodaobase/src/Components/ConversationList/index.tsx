@@ -21,7 +21,6 @@ export interface ConversationListProps {
     conversations: ConversationWrap[]
     select?: Channel
     onClick?: (conversation: ConversationWrap) => void
-    onClearMessages?: (channel: Channel) => void
 }
 
 export interface ConversationListState {
@@ -29,7 +28,7 @@ export interface ConversationListState {
 
 }
 
-export default class ConversationList extends Component<ConversationListProps, ConversationListState>{
+export default class ConversationList extends Component<ConversationListProps, ConversationListState> {
     channelListener!: ChannelInfoListener
     contextMenusContext!: ContextMenusContext
     typingListener!: TypingListener
@@ -80,7 +79,7 @@ export default class ConversationList extends Component<ConversationListProps, C
             return
         }
         const draft = conversationWrap.remoteExtra.draft
-        if(draft && draft!=="") {
+        if (draft && draft !== "") {
             return draft
         }
         const lastMessage = new MessageWrap(conversationWrap.lastMessage)
@@ -90,7 +89,7 @@ export default class ConversationList extends Component<ConversationListProps, C
         if (lastMessage.revoke) {
             return RevokeCell.tip(lastMessage)
         }
-        if(lastMessage.flame) {
+        if (lastMessage.flame) {
             return FlameMessageCell.tip(lastMessage)
         }
         if (lastMessage.channel.channelType === ChannelTypePerson) {
@@ -142,14 +141,10 @@ export default class ConversationList extends Component<ConversationListProps, C
     }
 
     conversationItem(conversationWrap: ConversationWrap) {
-        
-
         let channelInfo = conversationWrap.channelInfo
         if (!channelInfo) {
             WKSDK.shared().channelManager.fetchChannelInfo(conversationWrap.channel)
         }
-
-        const avatarKey = WKApp.shared.getChannelAvatarTag(conversationWrap.channel);
 
         const { select, onClick } = this.props
         const typing = TypingManager.shared.getTyping(conversationWrap.channel)
@@ -162,13 +157,13 @@ export default class ConversationList extends Component<ConversationListProps, C
             this._handleContextMenu(conversationWrap, e)
         }}>
             <div className={classNames("wk-conversationlist-item-content", selected ? "wk-conversationlist-item-selected" : undefined)}>
+                {channelInfo?.top && <div className="wk-conversationlist-pin-icon">📌</div>}
                 <div className="wk-conversationlist-item-left">
                     <div className="wk-conversationlist-item-avatar-box">
-                        <WKAvatar  channel={conversationWrap.channel} key={avatarKey}></WKAvatar>
+                        <WKAvatar src={conversationWrap.avatar}></WKAvatar>
                         {
                             channelInfo && this.needShowOnlineStatus(channelInfo) ? <OnlineStatusBadge tip={this.getOnlineTip(channelInfo)}></OnlineStatusBadge> : undefined
                         }
-
                     </div>
                 </div>
                 <div className="wk-conversationlist-item-right">
@@ -176,8 +171,6 @@ export default class ConversationList extends Component<ConversationListProps, C
                         <div className="wk-conversationlist-item-name">
                             <h3>
                                 {channelInfo?.orgData.displayName}
-
-
                             </h3>
                             {
                                 channelInfo?.orgData.identityIcon ? <img style={{ "marginLeft": "4px", "width": channelInfo?.orgData?.identitySize.width, "height": channelInfo?.orgData?.identitySize.height }} src={channelInfo?.orgData.identityIcon}></img> : undefined
@@ -197,14 +190,14 @@ export default class ConversationList extends Component<ConversationListProps, C
                     <div className="wk-conversationlist-item-right-second-line">
                         <div className="wk-conversationlist-item-lastmsg">
                             {
-                                !typing?<label className="wk-reminder" style={{ display: conversationWrap.remoteExtra.draft  ? undefined : 'none' }}>[草稿]</label>:undefined
+                                !typing ? <label className="wk-reminder" style={{ display: conversationWrap.remoteExtra.draft ? undefined : 'none' }}>[草稿]</label> : undefined
                             }
                             {
-                                conversationWrap.simpleReminders && !typing &&  conversationWrap.simpleReminders.length>0 ?(
-                                    conversationWrap.simpleReminders.filter((r)=>r.done === false).map((r)=>{
-                                        return   <label key={r.reminderID} className="wk-reminder">{r.text}</label>
+                                conversationWrap.simpleReminders && !typing && conversationWrap.simpleReminders.length > 0 ? (
+                                    conversationWrap.simpleReminders.filter((r) => r.done === false).map((r) => {
+                                        return <label key={r.reminderID} className="wk-reminder">{r.text}</label>
                                     })
-                                ):undefined
+                                ) : undefined
                             }
                             {
                                 typing ? this._getTypingUI(conversationWrap) : this.lastContent(conversationWrap)
@@ -225,21 +218,22 @@ export default class ConversationList extends Component<ConversationListProps, C
     onTop(channelInfo: ChannelInfo) {
         ChannelSettingManager.shared.top(!channelInfo.top, channelInfo.channel)
     }
-
     onMute(channelInfo: ChannelInfo) {
         ChannelSettingManager.shared.mute(!channelInfo.mute, channelInfo.channel)
     }
-
     onCloseChat(channel: Channel) { // 关闭聊天
         WKApp.conversationProvider.deleteConversation(channel)
     }
-
     async onClearMessages(channel: Channel) {
-        if(this.props.onClearMessages) {
-            this.props.onClearMessages(channel)
+        const conversation = WKSDK.shared().conversationManager.findConversation(channel)
+        if (!conversation) {
+            return
         }
+        await WKApp.conversationProvider.clearConversationMessages(conversation)
+        conversation.lastMessage = undefined
+        WKApp.endpointManager.invoke(EndpointID.clearChannelMessages, channel)
+        this.setState({})
     }
-
     render() {
         const { conversations, select } = this.props
         const { selectConversationWrap } = this.state
@@ -254,7 +248,7 @@ export default class ConversationList extends Component<ConversationListProps, C
                 this.contextMenusContext = ctx
             }} menus={[
                 {
-                    title: selectConversationWrap?.channelInfo?.top ? "取消置顶" : "置顶", onClick: () => {
+                    title: selectConversationWrap?.channelInfo?.top ? "⭐️ 取消置顶" : "📌 置顶会话", onClick: () => {
                         this.onTop(selectConversationWrap?.channelInfo!)
                     }
                 },
@@ -284,12 +278,10 @@ export default class ConversationList extends Component<ConversationListProps, C
     }
 }
 
-
 interface OnlineStatusBadgeProps {
     tip?: string
 }
 export class OnlineStatusBadge extends Component<OnlineStatusBadgeProps> {
-
     render(): React.ReactNode {
         const { tip } = this.props
         return <div className={classNames("wk-onlinestatusbadge", !tip ? "wk-onlinestatusbadge-empty" : undefined)}>

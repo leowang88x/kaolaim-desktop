@@ -86,7 +86,7 @@ export default class ImageToolbar extends Component<ImageToolbarProps, ImageTool
         if(fileType === "image") {
             conversationContext.sendMessage(new ImageContent(file,previewUrl,width,height))
         }
-       
+
         this.setState({
             showDialog: false,
         });
@@ -106,8 +106,8 @@ export default class ImageToolbar extends Component<ImageToolbarProps, ImageTool
         const { showDialog, canSend, fileIconInfo, file, fileType, previewUrl } = this.state
         return <div className="wk-imagetoolbar" >
             <div className="wk-imagetoolbar-content" onClick={() => {
-            this.chooseFile()
-        }}>
+                this.chooseFile()
+            }}>
                 <div className="wk-imagetoolbar-content-icon">
                     <img src={icon}></img>
                     <input onClick={this.onFileClick} onChange={this.onFileChange.bind(this)} ref={(ref) => { this.$fileInput = ref }} type="file" multiple={false} accept="image/*" style={{ display: 'none' }} />
@@ -139,7 +139,24 @@ interface ImageDialogProps {
 }
 
 class ImageDialog extends Component<ImageDialogProps> {
+    // 监听回车键
+    componentDidMount() {
+        document.addEventListener('keydown', this.handleKeyDown);
+    }
 
+    componentWillUnmount() {
+        document.removeEventListener('keydown', this.handleKeyDown);
+    }
+
+    handleKeyDown = (e: KeyboardEvent) => {
+        // 当按下回车键且不是在输入框内时
+        if (e.key === 'Enter' && this.props.canSend) {
+            e.preventDefault();
+            if (this.props.onSend) {
+                this.props.onSend();
+            }
+        }
+    };
 
     // 格式化文件大小
     getFileSizeFormat(size: number) {
@@ -184,12 +201,14 @@ class ImageDialog extends Component<ImageDialogProps> {
                             </div>
                         )
                     }
-                    <div className="wk-imagedialog-footer" >
+                    <div className="wk-imagedialog-footer">
                         <button onClick={onClose}>取消</button>
-                        <button onClick={onSend} className="wk-imagedialog-footer-okbtn" disabled={!canSend} style={{ backgroundColor: canSend ? WKApp.config.themeColor : 'gray' }}>发送</button>
+                        <div className="wk-imagedialog-footer-right">
+                            <div className="wk-imagedialog-footer-tip">按 Enter 发送</div>
+                            <button onClick={onSend} className="wk-imagedialog-footer-okbtn" disabled={!canSend} style={{ backgroundColor: canSend ? WKApp.config.themeColor : 'gray' }}>发送</button>
+                        </div>
                     </div>
                 </div>
-
             </div>
         </div>
     }

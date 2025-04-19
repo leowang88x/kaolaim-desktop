@@ -1,8 +1,5 @@
-
-
-
 .wk-imagetoolbar {
-   
+
 }
 
 .wk-imagetoolbar-content {
@@ -183,25 +180,34 @@ body[theme-mode=dark] .wk-imagedialog-content-preview--filecontent {
 }
 
 .wk-imagedialog-footer {
-    margin-top: 28px;
-    justify-content: flex-end;
     display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    width: 100%;
 }
 
-.wk-imagedialog-footer button{
-    background-color: #fff;
-    border: 1px solid #dee0e3;
-    color: #1f2329;
+.wk-imagedialog-footer button {
+    border: none;
+    outline: none;
+    padding: 8px 16px;
     border-radius: 4px;
-    height: 32px;
-    min-width: 100px;
-    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
 }
 
 .wk-imagedialog-footer-okbtn {
-    margin-left: 16px;
-    color: white !important;
-    border: none !important;
+    color: white;
+}
+
+.wk-imagedialog-footer-right {
+    display: flex;
+    align-items: center;
+}
+
+.wk-imagedialog-footer-tip {
+    color: #999;
+    font-size: 12px;
+    margin-right: 10px;
 }
 

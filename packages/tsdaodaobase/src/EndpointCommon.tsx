@@ -1,10 +1,13 @@
-import { Channel, WKSDK, Message } from "wukongimjssdk";
+import { Channel, WKSDK, Message ,MessageContentType} from "wukongimjssdk";
 import WKApp from "./App";
 import React, { Component, ReactNode } from "react";
 import { ChatContentPage } from "./Pages/Chat";
 import { EndpointCategory, EndpointID } from "./Service/Const";
 import { EndpointManager } from "./Service/Module";
 import ConversationContext from "./Components/Conversation/context";
+import { copyImageToClipboard, isClipboardCopySupported } from "./Utils/copyImage";
+import { Toast } from "@douyinfe/semi-ui";
+import {ImageContent} from "./Messages/Image";
 
 export class MessageContextMenus {
   title!: string;
@@ -102,7 +105,7 @@ export class EndpointCommon {
 
         WKApp.routeRight.replaceToRoot(
           <ChatContentPage
-            key={key}
+            key={channel.getChannelKey()}
             channel={channel}
             initLocateMessageSeq={initLocateMessageSeq}
           ></ChatContentPage>
@@ -133,14 +136,87 @@ export class EndpointCommon {
   }
 
   messageContextMenus(
-    message: Message,
-    ctx: ConversationContext
+      message: Message,
+      ctx: ConversationContext
   ): MessageContextMenus[] {
-    return EndpointManager.shared.invokes(
-      EndpointCategory.messageContextMenus,
-      { message: message, context: ctx }
+    const menus: MessageContextMenus[] = [];
+
+    try {
+      // 添加图片复制菜单（仅当浏览器支持时显示）
+      if (message.contentType === MessageContentType.image) {
+        const imageContent = message.content as ImageContent;
+        const imageUrl = WKApp.dataSource.commonDataSource.getImageURL(imageContent.url);
+
+        // 复制功能
+        if (isClipboardCopySupported()) {
+          menus.push({
+            title: "复制图片",
+            onClick: async () => {
+              try {
+                Toast.info({
+                  content: "正在复制...",
+                  duration: 2,
+                });
+
+                // 增加重试机制
+                let result = false;
+                for (let i = 0; i < 2; i++) {
+                  result = await copyImageToClipboard(imageUrl);
+                  if (result) break;
+                  // 如果第一次失败，稍微延迟后重试
+                  if (i === 0) await new Promise(r => setTimeout(r, 500));
+                }
+
+                if (result) {
+                  Toast.success({
+                    content: "图片已复制，可以粘贴使用了",
+                    duration: 3,
+                  });
+                } else {
+                  // 提供备用建议
+                  Toast.error({
+                    content: "复制失败，请稍后重试",
+                    duration: 4,
+                  });
+                }
+              } catch (err) {
+                console.error('复制图片失败:', err);
+                Toast.error("复制失败，请稍后重试");
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.error('构建图片菜单失败:', e);
+    }
+
+    // 添加撤回菜单
+    if (
+        message.fromUID === WKApp.loginInfo.uid &&
+        new Date().getTime() / 1000 - message.timestamp <
+        WKApp.remoteConfig.revokeSecond
+    ) {
+      menus.push({
+        title: "撤回",
+        onClick: () => {
+          ctx.revokeMessage(message);
+        }
+      });
+    }
+
+    // 添加自定义菜单
+    const endpointMenus = EndpointManager.shared.invokes<MessageContextMenus>(
+        EndpointCategory.messageContextMenus,
+        {
+          message: message,
+          context: ctx,
+        }
     );
+
+    return [...menus, ...endpointMenus];
   }
+
 
   registerChatToolbar(
     sid: string,
@@ -185,10 +261,15 @@ export class EndpointCommon {
     );
   }
 
-  organizationalTool(channel: Channel, render?: JSX.Element): JSX.Element {
+  organizationalTool(
+      channel: Channel,
+      disableSelectList?: string[],
+      render?: JSX.Element
+  ): JSX.Element {
     return EndpointManager.shared.invoke(EndpointCategory.organizational, {
-      channel: channel,
-      render: render,
+      channel,
+      disableSelectList,
+      render,
     });
   }
 
@@ -207,9 +288,10 @@ export class EndpointCommon {
     );
   }
 
-  organizationalLayer(channel: Channel): void {
+  organizationalLayer(channel: Channel, disableSelectList?: string[]): void {
     return EndpointManager.shared.invoke(EndpointCategory.organizationalLayer, {
-      channel: channel,
+      channel,
+      disableSelectList,
     });
   }
 
