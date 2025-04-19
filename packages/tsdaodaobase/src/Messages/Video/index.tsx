@@ -1,37 +1,54 @@
-import { MessageContent } from "wukongimjssdk";
-import React from "react";
-import WKApp from "../../App";
-import MessageBase from "../Base";
-import { MessageCell } from "../MessageCell";
-import "./index.css"
+import { MediaMessageContent } from "wukongimjssdk"
+import React from "react"
+import WKApp from "../../App"
+import { MessageContentTypeConst } from "../../Service/Const"
+import MessageBase from "../Base"
+import { MessageCell } from "../MessageCell"
 
-export class VideoContent extends MessageContent {
-    url!: string  // 小视频下载地址
-    cover!: string // 小视频封面图片下载地址
-    size: number = 0 // 小视频大小 单位byte
-    width!: number // 小视频宽度
-    height!: number // 小视频高度
+
+export class VideoContent extends MediaMessageContent {
+    width!: number
+    height!: number
+    videoData?: string
     second!: number // 小视频秒长
 
+    url!: string
+    cover!: string // 小视频封面图片下载地址
+    constructor(file?: File, coverFile?: any, videoData?: string, width?: number, height?: number, second?: number) {
+        super()
+        this.width = width || 0
+        this.height = height || 0
+        this.videoData = videoData
+        this.second = second || 0
+
+        this.file = file
+        this.coverFile = coverFile
+    }
     decodeJSON(content: any) {
-        this.url = content["url"] || 0
-        this.cover = content["cover"] || 0
-        this.size = content["size"] || 0
         this.width = content["width"] || 0
         this.height = content["height"] || 0
         this.second = content["second"] || 0
-    }
 
+        this.url = content["url"]
+        this.cover = content["cover"]
+        this.remoteUrl = this.url
+
+        this.coverUrl = this.cover
+    }
     encodeJSON() {
-        return { "url": this.url || "", "cover": this.cover || "", "size": this.size || 0,"width":this.width||0,"height":this.height||0,"second":this.second||0 }
+        return { "width": this.width || 0, "height": this.height || 0, "url": this.remoteUrl, "cover": this.coverUrl, "second": this.second, }
     }
 
 
+    get contentType() {
+        return MessageContentTypeConst.smallVideo
+    }
     get conversationDigest() {
         return "[小视频]"
     }
-
 }
+
+
 
 interface VideoCellState {
     playProgress: number // 播放进度
@@ -44,28 +61,16 @@ export class VideoCell extends MessageCell<any, VideoCellState> {
         this.state = {
             playProgress: 0,
         }
-
     }
-    componentDidMount() {
-
-
-    }
-
-    componentWillUnmount() {
-    }
-
     secondFormat(second: number): string {
-
-        const minute = parseInt(`${( second / 60)}`)
+        const minute = parseInt(`${(second / 60)}`)
         const realSecond = parseInt(`${second % 60}`)
-
         let minuteFormat = ""
         if (minute > 9) {
             minuteFormat = `${minute}`
         } else {
             minuteFormat = `0${minute}`
         }
-
         let secondFormat = ""
         if (realSecond > 9) {
             secondFormat = `${realSecond}`
@@ -75,6 +80,7 @@ export class VideoCell extends MessageCell<any, VideoCellState> {
 
         return `${minuteFormat}:${secondFormat}`
     }
+
 
     videoScale(orgWidth: number, orgHeight: number, maxWidth = 380, maxHeight = 380) {
         let actSize = { width: orgWidth, height: orgHeight };
@@ -99,28 +105,34 @@ export class VideoCell extends MessageCell<any, VideoCellState> {
         }
         return actSize;
     }
+
     render() {
         const { message, context } = this.props
         const { playProgress } = this.state
         const content = message.content as VideoContent
         const actSize = this.videoScale(content.width, content.height)
         return <MessageBase hiddeBubble={true} message={message} context={context}>
-
             <div className="wk-message-video" style={{ width: actSize.width, height: '100%' }}>
                 <div className="wk-message-video-content">
-                    <span className="wk-message-video-content-time">{this.secondFormat(content.second - playProgress)}</span>
+                    <span className="wk-message-video-content-time" style={{ color: '#000' }}>{this.secondFormat((content?.second || content.second || 0) - (playProgress || 0))}</span>
                     <div className="wk-message-video-content-video">
-                        <video poster={WKApp.dataSource.commonDataSource.getImageURL(content.cover)} width={actSize.width} height={actSize.height} controls onTimeUpdate={(evet) => {
-                            const video = evet.target as HTMLVideoElement
-                            this.setState({
-                                playProgress: video.currentTime,
-                            })
-                        }} onEnded={() => {
-                            this.setState({
-                                playProgress: 0,
-                            })
-                        }}>
-                            <source src={WKApp.dataSource.commonDataSource.getFileURL(content.url)} type="video/mp4" />
+                        <video
+                            poster={WKApp.dataSource.commonDataSource.getImageURL(content?.coverUrl || content.cover)}
+                            width={actSize.width}
+                            height={actSize.height} controls
+                            onTimeUpdate={(evet) => {
+                                const video = evet.target as HTMLVideoElement
+                                this.setState({
+                                    playProgress: video.currentTime,
+                                })
+                            }} onEnded={() => {
+                                this.setState({
+                                    playProgress: 0,
+                                })
+                            }}
+                            src={WKApp.dataSource.commonDataSource.getFileURL(content?.remoteUrl || content.url)}
+                        >
+                            <source src={WKApp.dataSource.commonDataSource.getFileURL(content?.remoteUrl || content.url)} type="video/mp4" />
                         </video>
                     </div>
                 </div>

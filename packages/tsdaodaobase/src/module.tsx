@@ -78,6 +78,7 @@ import APIClient from "./Service/APIClient";
 import { ChannelAvatar } from "./Components/ChannelAvatar";
 import { ScreenshotCell, ScreenshotContent } from "./Messages/Screenshot";
 import ImageToolbar from "./Components/ImageToolbar";
+import VideoToolbar from "./Components/VideoToolbar";
 import { ProhibitwordsService } from "./Service/ProhibitwordsService";
 import { SubscriberList } from "./Components/Subscribers/list";
 import GlobalSearch from "./Components/GlobalSearch";
@@ -539,6 +540,14 @@ export default class BaseModule implements IModule {
           icon={require("./assets/toolbars/func_upload_image.svg").default}
           conversationContext={ctx}
         ></ImageToolbar>
+      );
+    });
+    WKApp.endpoints.registerChatToolbar("chattoolbar.video", (ctx) => {
+      return (
+        <VideoToolbar
+          icon={require("./assets/toolbars/func_upload_video.svg").default}
+          conversationContext={ctx}
+        ></VideoToolbar>
       );
     });
   }
