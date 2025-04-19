@@ -29,7 +29,7 @@ jobs:
         run: cd apps/web && yarn run build-ele:win
 
       - name: Upload EXE artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@3e65f6f3e91216b3e44c1a0d5781d6eaa26729bc
         with:
           name: tsdd-win-exe
           path: apps/web/dist_electron/win-unpacked/*.exe
